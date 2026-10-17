@@ -1,0 +1,8 @@
+1.0.0
+oda      : C:\Program Files\ODA\ODAFileConverter 27.9.0\ODAFileConverter.exe
+libredwg : D:\a\dwgconverter\dwgconverter\dist\DWGConverter\libredwg\dwgwrite.exe
+samples\floor_plan.png -> D:\a\dwgconverter\dwgconverter\smoke\floor_plan.dwg, D:\a\dwgconverter\dwgconverter\smoke\floor_plan.dxf  [libredwg]  4 circle, 56 line, 4 arc, 1 poly
+samples\mechanical_part.png -> D:\a\dwgconverter\dwgconverter\smoke\mechanical_part.dwg, D:\a\dwgconverter\dwgconverter\smoke\mechanical_part.dxf  [libredwg]  5 circle, 1 arc, 7 line, 1 poly
+samples\floor_plan_scan.jpg -> D:\a\dwgconverter\dwgconverter\smoke\floor_plan_scan.dwg, D:\a\dwgconverter\dwgconverter\smoke\floor_plan_scan.dxf  [libredwg]  4 circle, 56 line, 4 arc, 1 poly
+samples\floor_plan.png -> D:\a\dwgconverter\dwgconverter\smoke_oda\floor_plan.dwg  [oda]  4 circle, 56 line, 4 arc, 1 poly
+samples\mechanical_part.png -> D:\a\dwgconverter\dwgconverter\smoke_oda\mechanical_part.dwg  [oda]  5 circle, 1 arc, 7 line, 1 poly

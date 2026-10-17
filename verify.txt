@@ -1,0 +1,27 @@
+engines: {'oda': 'C:\\Program Files\\ODA\\ODAFileConverter 27.9.0\\ODAFileConverter.exe', 'libredwg': 'D:\\a\\dwgconverter\\dwgconverter\\libredwg\\dwgwrite.exe'}
+
+== floor_plan: wrote {'CIRCLE': 4, 'LINE': 56, 'ARC': 4, 'LWPOLYLINE': 1}
+  [libredwg] floor_plan_libredwg.dwg 8528 bytes
+    read by LibreDWG : {'CIRCLE': 4, 'LINE': 56, 'ARC': 4, 'LWPOLYLINE': 1} OK
+    read by ODA      : {'CIRCLE': 4, 'LINE': 56, 'ARC': 4, 'LWPOLYLINE': 1} OK
+  [oda] floor_plan_oda.dwg 13793 bytes
+    read by LibreDWG : {'CIRCLE': 4, 'LINE': 56, 'ARC': 4, 'LWPOLYLINE': 1} OK
+    read by ODA      : {'CIRCLE': 4, 'LINE': 56, 'ARC': 4, 'LWPOLYLINE': 1} OK
+
+== floor_plan_scan: wrote {'CIRCLE': 4, 'LINE': 56, 'ARC': 4, 'LWPOLYLINE': 1}
+  [libredwg] floor_plan_scan_libredwg.dwg 8528 bytes
+    read by LibreDWG : {'CIRCLE': 4, 'LINE': 56, 'ARC': 4, 'LWPOLYLINE': 1} OK
+    read by ODA      : {'CIRCLE': 4, 'LINE': 56, 'ARC': 4, 'LWPOLYLINE': 1} OK
+  [oda] floor_plan_scan_oda.dwg 13825 bytes
+    read by LibreDWG : {'CIRCLE': 4, 'LINE': 56, 'ARC': 4, 'LWPOLYLINE': 1} OK
+    read by ODA      : {'CIRCLE': 4, 'LINE': 56, 'ARC': 4, 'LWPOLYLINE': 1} OK
+
+== mechanical_part: wrote {'CIRCLE': 5, 'ARC': 1, 'LINE': 7, 'LWPOLYLINE': 1}
+  [libredwg] mechanical_part_libredwg.dwg 5957 bytes
+    read by LibreDWG : {'CIRCLE': 5, 'ARC': 1, 'LINE': 7, 'LWPOLYLINE': 1} OK
+    read by ODA      : {'CIRCLE': 5, 'ARC': 1, 'LINE': 7, 'LWPOLYLINE': 1} OK
+  [oda] mechanical_part_oda.dwg 12576 bytes
+    read by LibreDWG : {'CIRCLE': 5, 'ARC': 1, 'LINE': 7, 'LWPOLYLINE': 1} OK
+    read by ODA      : {'CIRCLE': 5, 'ARC': 1, 'LINE': 7, 'LWPOLYLINE': 1} OK
+
+failures: 0
