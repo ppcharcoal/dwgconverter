@@ -1,0 +1,128 @@
+name: Build Windows app
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller pytest
+
+      - name: Unit tests (geometry accuracy)
+        run: python -m pytest -q tests
+
+      - name: Download LibreDWG (DWG writer, bundled)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo LibreDWG/libredwg --pattern "*win64*.zip" --dir ldwg
+          Get-ChildItem ldwg
+          $zip = Get-ChildItem ldwg -Filter *.zip | Select-Object -First 1
+          Expand-Archive $zip.FullName -DestinationPath ldwg/x
+          $exe = Get-ChildItem ldwg/x -Recurse -Filter dwgwrite.exe | Select-Object -First 1
+          if (-not $exe) { throw "dwgwrite.exe not found in LibreDWG package" }
+          New-Item -ItemType Directory -Force libredwg | Out-Null
+          Copy-Item "$($exe.DirectoryName)\*" libredwg -Recurse
+          Get-ChildItem ldwg/x -Recurse -Include COPYING*,LICENSE* | Select-Object -First 1 | Copy-Item -Destination libredwg/COPYING.txt
+          Get-ChildItem libredwg | Select-Object -First 40
+          ./libredwg/dwgwrite.exe --version
+
+      - name: Install ODA File Converter (test only, not bundled)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://www.opendesign.com/guestfiles/get?filename=ODAFileConverter_QT6_vc16_amd64dll.msi" -OutFile oda.msi
+          $p = Start-Process msiexec.exe -ArgumentList "/i oda.msi /qn /norestart" -Wait -PassThru
+          "msiexec exit: $($p.ExitCode)"
+          Get-ChildItem "C:\Program Files\ODA" -Recurse -Filter ODAFileConverter.exe
+
+      - name: Build with PyInstaller
+        run: pyinstaller --noconfirm --clean dwgconverter.spec
+
+      - name: Assemble package
+        shell: pwsh
+        run: |
+          Copy-Item libredwg dist/DWGConverter/libredwg -Recurse
+          Copy-Item samples dist/DWGConverter/samples -Recurse
+          Copy-Item README.md dist/DWGConverter/
+          Copy-Item LICENSE dist/DWGConverter/LICENSE.txt
+          "{0:N1} MB" -f ((Get-ChildItem dist/DWGConverter -Recurse | Measure-Object Length -Sum).Sum / 1MB)
+
+      - name: Smoke test packaged CLI
+        shell: pwsh
+        run: |
+          $cli = "dist/DWGConverter/dwgconvert.exe"
+          & $cli --version
+          & $cli --engines
+          New-Item -ItemType Directory -Force smoke | Out-Null
+          & $cli samples/*.png samples/*.jpg -o smoke --engine libredwg --keep-dxf
+          if ($LASTEXITCODE -ne 0) { throw "CLI conversion (LibreDWG) failed" }
+          if (Test-Path "C:\Program Files\ODA") {
+            New-Item -ItemType Directory -Force smoke_oda | Out-Null
+            & $cli samples/*.png -o smoke_oda --engine oda
+            if ($LASTEXITCODE -ne 0) { throw "CLI conversion (ODA) failed" }
+          }
+          Get-ChildItem smoke, smoke_oda -ErrorAction SilentlyContinue
+
+      - name: Verify DWG files can be read back
+        shell: pwsh
+        run: |
+          $env:PATH = "$PWD\libredwg;$env:PATH"
+          python tools/verify_dwg.py
+
+      - name: GUI self-test (packaged exe)
+        shell: pwsh
+        run: |
+          $p = Start-Process dist/DWGConverter/DWGConverter.exe -ArgumentList "--selftest", "$PWD\gui_test", "$PWD\samples\floor_plan.png", "$PWD\samples\mechanical_part.png" -Wait -PassThru
+          "exit code: $($p.ExitCode)"
+          Get-ChildItem gui_test
+          if ($p.ExitCode -ne 0) { throw "GUI self-test failed" }
+
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive dist/DWGConverter DWGConverter-windows-x64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DWGConverter-windows-x64
+          path: DWGConverter-windows-x64.zip
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-output
+          path: |
+            smoke
+            smoke_oda
+            verify_out
+            gui_test
+
+      - name: Publish "latest" pre-release
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag 2>$null
+          $global:LASTEXITCODE = 0
+          gh release create latest DWGConverter-windows-x64.zip --prerelease --title "Latest build" --notes "Automatic build of $env:GITHUB_SHA. Unzip and run DWGConverter.exe."

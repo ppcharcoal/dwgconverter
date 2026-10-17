@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+build/
+dist/
+.pytest_cache/
+*.spec.bak
+out/
+libredwg/
+*.dwg
+*.dxf
+!samples/*.png
