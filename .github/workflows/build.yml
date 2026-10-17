@@ -72,14 +72,14 @@ jobs:
         shell: pwsh
         run: |
           $cli = "dist/DWGConverter/dwgconvert.exe"
-          & $cli --version
-          & $cli --engines
-          New-Item -ItemType Directory -Force smoke | Out-Null
-          & $cli samples/*.png samples/*.jpg -o smoke --engine libredwg --keep-dxf
+          New-Item -ItemType Directory -Force smoke, ci_logs | Out-Null
+          & $cli --version *>&1 | Tee-Object -Append ci_logs/smoke.txt
+          & $cli --engines *>&1 | Tee-Object -Append ci_logs/smoke.txt
+          & $cli samples/*.png samples/*.jpg -o smoke --engine libredwg --keep-dxf *>&1 | Tee-Object -Append ci_logs/smoke.txt
           if ($LASTEXITCODE -ne 0) { throw "CLI conversion (LibreDWG) failed" }
           if (Test-Path "C:\Program Files\ODA") {
             New-Item -ItemType Directory -Force smoke_oda | Out-Null
-            & $cli samples/*.png -o smoke_oda --engine oda
+            & $cli samples/*.png -o smoke_oda --engine oda *>&1 | Tee-Object -Append ci_logs/smoke.txt
             if ($LASTEXITCODE -ne 0) { throw "CLI conversion (ODA) failed" }
           }
           Get-ChildItem smoke, smoke_oda -ErrorAction SilentlyContinue
@@ -88,9 +88,12 @@ jobs:
         shell: pwsh
         run: |
           $env:PATH = "$PWD\libredwg;$env:PATH"
-          python tools/verify_dwg.py
+          New-Item -ItemType Directory -Force ci_logs | Out-Null
+          python tools/verify_dwg.py *>&1 | Tee-Object ci_logs/verify.txt
+          if ($LASTEXITCODE -ne 0) { throw "DWG verification failed" }
 
       - name: GUI self-test (packaged exe)
+        if: always()
         shell: pwsh
         run: |
           $p = Start-Process dist/DWGConverter/DWGConverter.exe -ArgumentList "--selftest", "$PWD\gui_test", "$PWD\samples\floor_plan.png", "$PWD\samples\mechanical_part.png" -Wait -PassThru
@@ -116,6 +119,19 @@ jobs:
             smoke_oda
             verify_out
             gui_test
+
+      - name: Push test logs to ci-results branch
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force ci_logs | Out-Null
+          foreach ($d in "gui_test","verify_out","smoke","smoke_oda") { if (Test-Path $d) { Copy-Item $d ci_logs/ -Recurse -Force } }
+          Get-ChildItem ci_logs -Recurse -Include *.dwg,*.dxf | Where-Object { $_.Length -gt 3MB } | Remove-Item
+          cd ci_logs
+          git init -q -b ci-results
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A; git commit -q -m "CI results $env:GITHUB_SHA"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-results
 
       - name: Publish "latest" pre-release
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
