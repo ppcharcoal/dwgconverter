@@ -27,12 +27,38 @@ def counts_of(doc):
     return Counter(e.dxftype() for e in doc.modelspace() if e.dxftype() in GEOM)
 
 
+class _Raw:
+    """Minimal DXF reader: entity types in the ENTITIES section.  Used when
+    a third-party DXF can't be loaded by ezdxf (e.g. handle quirks)."""
+
+    def __init__(self, path):
+        with open(path, errors="replace") as f:
+            lines = [ln.strip() for ln in f]
+        self.types = []
+        in_ent = False
+        for i in range(0, len(lines) - 1, 2):
+            code, val = lines[i], lines[i + 1]
+            if code == "2" and val == "ENTITIES":
+                in_ent = True
+            elif code == "0" and val == "ENDSEC":
+                in_ent = False
+            elif in_ent and code == "0":
+                self.types.append(val)
+
+    def modelspace(self):
+        return [type("E", (), {"dxftype": (lambda self, t=t: t)})() for t in self.types]
+
+
 def read_dxf(path):
     try:
-        doc = ezdxf.readfile(path)
+        return ezdxf.readfile(path)
     except Exception:
+        pass
+    try:
         doc, _ = recover.readfile(path)
-    return doc
+        return doc
+    except Exception:
+        return _Raw(path)
 
 
 def oda_dwg_to_dxf(oda, dwg, out_dxf):

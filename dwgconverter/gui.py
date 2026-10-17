@@ -159,13 +159,15 @@ class PreviewWindow(tk.Toplevel):
                 crop = crop.resize((dw, dh), Image.NEAREST if z >= 1 else Image.BILINEAR)
                 crop = crop.point(lambda v: 255 - (255 - v) * 0.4)
                 self._photo = ImageTk.PhotoImage(crop)
-                cv.create_image((l - x0) * z, (t - y0) * z, image=self._photo, anchor="nw")
+                cv.create_image(round((l - x0) * z), round((t - y0) * z), image=self._photo, anchor="nw")
         if self.show_vec.get():
             # pixel centres are at integer coords -> +0.5 to sit on the image
             for (kind, p), bb in zip(self.polys, self.bboxes):
                 if bb[2] < x0 - 1 or bb[0] > x1 + 1 or bb[3] < y0 - 1 or bb[1] > y1 + 1:
                     continue
-                q = (p + 0.5 - [x0, y0]) * z
+                # Tk paints a 1px line on the pixel *below/right* of its
+                # coordinate; shift half a pixel so it sits on the image
+                q = (p + 0.5 - [x0, y0]) * z - 0.5
                 cv.create_line(*q.ravel().tolist(), fill=self.COLORS[kind], width=1)
         if self.show_ends.get():
             r = 3
